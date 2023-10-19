@@ -1,0 +1,44 @@
+---
+- name: Install and configure nginx for static website hosting
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Install nginx
+      ansible.builtin.apt:
+        name: nginx
+        state: latest
+        update_cache: true
+
+    - name: Add user to group root
+      ansible.builtin.user:
+        name: "{{ user }}"
+        groups: root
+        state: present
+
+    - name: Remove default nginx configuration
+      ansible.builtin.file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+
+    - name: Add nginx configuration
+      ansible.builtin.copy:
+        src: ./static-site-config
+        dest: /etc/nginx/sites-available/
+        owner: "{{ user }}"
+        group: root
+        mode: '0644'
+
+    - name: Enable website configuration
+      ansible.builtin.file:
+        src: /etc/nginx/sites-available/static-site-config
+        dest: /etc/nginx/sites-enabled/static-site-config
+        state: link
+
+    - name: Ensure nginx is running
+      ansible.builtin.systemd:
+        name: nginx
+        state: started
+        enabled: true
+  vars:
+    user: "azureuser"
